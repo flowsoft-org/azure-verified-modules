@@ -64,7 +64,7 @@ jobs:
             userAssignedIdentityResourceId=$(az deployment sub show --name main --query properties.outputs.umsiResourceId.value -o tsv)
 
       - name: Cleanup when completed
-        timeout-minutes: 5
+        timeout-minutes: 3
         run: |
           while [ "$(az container show --ids $(az deployment sub show --name aci --query properties.outputs.aciResourceId.value -o tsv) --query containers[0].instanceView.currentState.detailStatus -o tsv)" != "Completed" ]; do
             sleep 30
