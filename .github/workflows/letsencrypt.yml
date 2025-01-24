@@ -53,7 +53,7 @@ jobs:
 
       - name: Run Container Instance to renew certificate and store
         run: |
-          az deployment sub create --verbose --location italynorth --template-file ./aci.bicep \
+          az deployment sub create --verbose --location italynorth --template-file letsencrypt/aci.bicep \
             --parameters mainCertKeyVaultResourceId=$KEY_VAULT_RESOURCE_ID \
             email=$LETS_ENCRYPT_EMAIL \
             domain=$DOMAIN_NAME \
