@@ -3,7 +3,8 @@ targetScope = 'subscription'
 param resourceLocation string = 'italynorth'
 param mainCertKeyVaultResourceId string
 param registryServername string
-param userAssignedIdentity string
+param userAssignedIdentityPrincipalId string
+param userAssignedIdentityResourceId string
 param email string
 param domain string
 param certname string
@@ -57,6 +58,10 @@ module containerGroup 'br/public:avm/res/container-instance/container-group:0.4.
               name: 'PRODUCTION'
               value: production
             }         
+            {
+              name: 'USERNAME'
+              value: userAssignedIdentityPrincipalId
+            }
           ]
         }
       }
@@ -72,14 +77,14 @@ module containerGroup 'br/public:avm/res/container-instance/container-group:0.4.
     imageRegistryCredentials: [
       {
         server: registryServername
-        identity: userAssignedIdentity
+        identity: userAssignedIdentityResourceId
       }
     ]
     location: resourceLocation
     managedIdentities: {
       systemAssigned: false
-      userAssignedResourceIds: [userAssignedIdentity]
+      userAssignedResourceIds: [userAssignedIdentityResourceId]
     }
-    restartPolicy: 'Always'
+    restartPolicy: 'Never'
   }
 }

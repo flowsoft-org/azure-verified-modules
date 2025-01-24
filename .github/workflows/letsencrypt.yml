@@ -1,0 +1,79 @@
+name: Renew Let's Encrypt certificate (Wildcard)
+
+on:
+  workflow_dispatch:
+    inputs:
+      email: 
+        description: 'eMail account to use for Let''s Encrypt certificate'
+        required: true
+
+jobs:
+  renew-letsencrypt-certificate:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Login to Azure using OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_LETS_ENCRYPT_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Test Keyvault DNS resolution
+        run: |
+          az deployment sub create --verbose --location italynorth --template-file letsencrypt/main.bicep \
+            --parameters mainDnsZoneResourceId=${{ inputs.DNS_ZONE_RESOURCE_ID }} \
+            mainCertKeyVaultResourceId=${{ inputs.KEY_VAULT_RESOURCE_ID }} \
+            domain=${{ vars.DOMAIN_NAME }}
+
+      - name: Setup azuredns.ini
+        run: |
+          az deployment sub show --name main --query properties.outputs.azurednsini.value -o tsv > azuredns.ini
+
+      - name: Build and Push customer Docker image
+        run: |
+          docker build . -t $(az deployment sub show --name main --query properties.outputs.registryServername.value -o tsv)/h2floh/azurecertbot:latest
+          az acr login -n $(az deployment sub show --name main --query properties.outputs.registryServername.value -o tsv)
+          docker push $(az deployment sub show --name main --query properties.outputs.registryServername.value -o tsv)/h2floh/azurecertbot:latest
+        working-directory: letsencrypt
+
+      - name: Run Container Instance to renew certificate and store
+        run: |
+          az deployment sub create --verbose --location italynorth --template-file ./aci.bicep \
+            --parameters mainCertKeyVaultResourceId=${{ inputs.KEY_VAULT_RESOURCE_ID }} \
+            email=${{ secrets.LETS_ENCRYPT_EMAIL }} \
+            domain=${{ vars.DOMAIN_NAME }} \
+            certname=${{ vars.KEY_VAULT_CERT_NAME }} \
+            production=${{ vars.PRODUCTION }} \
+            registryServername=$(az deployment sub show --name main --query properties.outputs.registryServername.value -o tsv) \
+            userAssignedIdentityPrincipalId=$(az deployment sub show --name main --query properties.outputs.umsiPrincipalId.value -o tsv) \
+            userAssignedIdentityResourceId=$(az deployment sub show --name main --query properties.outputs.umsiResourceId.value -o tsv)
+
+
+  cleanup-environment:
+    depends-on: renew-letsencrypt-certificate
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Login to Azure using OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_LETS_ENCRYPT_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  
+      # - name: Cleanup environment
+      #   run: |
+      #     az group delete --name rg-temporary --yes

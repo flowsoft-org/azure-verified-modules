@@ -32,5 +32,7 @@ ENV KEY_VAULT_NAME=keyvaultname
 ENV KEY_VAULT_CERT_NAME=mycertname
 # Mandatory for issuing a real SSL certificate (0 = Testing)
 ENV PRODUCTION=0
+# Mandatory User Manage Identity
+ENV USERNAME=usermanagedidentityclientid
 
-CMD [ "/bin/bash", "/start.sh" ]
+CMD [ "/bin/bash", "/start.sh"]
