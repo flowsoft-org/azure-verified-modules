@@ -42,6 +42,7 @@ jobs:
       - name: Setup azuredns.ini
         run: |
           az deployment sub show --name main --query properties.outputs.azurednsini.value -o tsv > azuredns.ini
+        working-directory: letsencrypt
 
       - name: Build and Push customer Docker image
         run: |
