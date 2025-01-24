@@ -1,4 +1,6 @@
-dns_azure_msi_client_id = 912ce44a-0156-4669-ae22-c16a17d34ca5
+dns_azure_use_cli_credentials = true
+
+dns_azure_environment = "AzurePublicCloud"
 
 dns_azure_zone1 = example.com:/subscriptions/c135abce-d87d-48df-936c-15596c6968a5/resourceGroups/dns1
 dns_azure_zone2 = example.org:/subscriptions/99800903-fb14-4992-9aff-12eaf2744622/resourceGroups/dns2
