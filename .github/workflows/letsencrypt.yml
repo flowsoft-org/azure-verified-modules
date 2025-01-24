@@ -2,10 +2,8 @@ name: Renew Let's Encrypt certificate (Wildcard)
 
 on:
   workflow_dispatch:
-    inputs:
-      email: 
-        description: 'eMail account to use for Let''s Encrypt certificate'
-        required: true
+
+
 
 jobs:
   renew-letsencrypt-certificate:
@@ -14,6 +12,14 @@ jobs:
     permissions:
       id-token: write
       contents: read
+
+    env:
+      DNS_ZONE_RESOURCE_ID: ${{ vars.DNS_ZONE_RESOURCE_ID }}
+      KEY_VAULT_RESOURCE_ID: ${{ vars.KEY_VAULT_RESOURCE_ID }}
+      DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+      KEY_VAULT_CERT_NAME: ${{ vars.KEY_VAULT_CERT_NAME }}
+      PRODUCTION: ${{ vars.PRODUCTION }}
+      LETS_ENCRYPT_EMAIL: ${{ secrets.LETS_ENCRYPT_EMAIL }}
 
     steps:
       - name: Checkout repository
@@ -26,16 +32,17 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Test Keyvault DNS resolution
+      - name: Prepare infrastructure, role assignments and prerequisites
         run: |
           az deployment sub create --verbose --location italynorth --template-file letsencrypt/main.bicep \
-            --parameters mainDnsZoneResourceId=${{ inputs.DNS_ZONE_RESOURCE_ID }} \
-            mainCertKeyVaultResourceId=${{ inputs.KEY_VAULT_RESOURCE_ID }} \
-            domain=${{ vars.DOMAIN_NAME }}
+            --parameters mainDnsZoneResourceId=$DNS_ZONE_RESOURCE_ID \
+            mainCertKeyVaultResourceId=$KEY_VAULT_RESOURCE_ID \
+            domain=$DOMAIN_NAME
 
       - name: Setup azuredns.ini
         run: |
           az deployment sub show --name main --query properties.outputs.azurednsini.value -o tsv > azuredns.ini
+        working-directory: letsencrypt
 
       - name: Build and Push customer Docker image
         run: |
@@ -46,20 +53,27 @@ jobs:
 
       - name: Run Container Instance to renew certificate and store
         run: |
-          az deployment sub create --verbose --location italynorth --template-file ./aci.bicep \
-            --parameters mainCertKeyVaultResourceId=${{ inputs.KEY_VAULT_RESOURCE_ID }} \
-            email=${{ secrets.LETS_ENCRYPT_EMAIL }} \
-            domain=${{ vars.DOMAIN_NAME }} \
-            certname=${{ vars.KEY_VAULT_CERT_NAME }} \
-            production=${{ vars.PRODUCTION }} \
+          az deployment sub create --verbose --location italynorth --template-file letsencrypt/aci.bicep \
+            --parameters mainCertKeyVaultResourceId=$KEY_VAULT_RESOURCE_ID \
+            email=$LETS_ENCRYPT_EMAIL \
+            domain=$DOMAIN_NAME \
+            certname=$KEY_VAULT_CERT_NAME \
+            production=$PRODUCTION \
             registryServername=$(az deployment sub show --name main --query properties.outputs.registryServername.value -o tsv) \
             userAssignedIdentityPrincipalId=$(az deployment sub show --name main --query properties.outputs.umsiPrincipalId.value -o tsv) \
             userAssignedIdentityResourceId=$(az deployment sub show --name main --query properties.outputs.umsiResourceId.value -o tsv)
 
+      - name: Cleanup when completed
+        timeout-minutes: 3
+        run: |
+          while [ "$(az container show --ids $(az deployment sub show --name aci --query properties.outputs.aciResourceId.value -o tsv) --query containers[0].instanceView.currentState.detailStatus -o tsv)" != "Completed" ]; do
+            sleep 30
+          done
+          az group delete --name rg-temporary --yes
 
-  cleanup-environment:
-    depends-on: renew-letsencrypt-certificate
-    if: ${{ always() }}
+  cleanup-environment-on-failure:
+    needs: renew-letsencrypt-certificate
+    if: ${{ failure() }}
     runs-on: ubuntu-latest
 
     permissions:
@@ -74,6 +88,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
   
-      # - name: Cleanup environment
-      #   run: |
-      #     az group delete --name rg-temporary --yes
+      - name: Cleanup environment
+        run: |
+          az group delete --name rg-temporary --yes
