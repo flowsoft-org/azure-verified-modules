@@ -63,10 +63,17 @@ jobs:
             userAssignedIdentityPrincipalId=$(az deployment sub show --name main --query properties.outputs.umsiPrincipalId.value -o tsv) \
             userAssignedIdentityResourceId=$(az deployment sub show --name main --query properties.outputs.umsiResourceId.value -o tsv)
 
+      - name: Cleanup when completed
+        timeout-minutes: 5
+        run: |
+          while [ "$(az container show --ids $(az deployment sub show --name aci --query properties.outputs.aciResourceId.value -o tsv) --query containers[0].instanceView.currentState.detailStatus -tsv o)" != "Completed" ]; do
+            sleep 30
+          done
+          az group delete --name rg-temporary --yes
 
-  cleanup-environment:
+  cleanup-environment-on-failure:
     needs: renew-letsencrypt-certificate
-    if: ${{ always() }}
+    if: ${{ failure() }}
     runs-on: ubuntu-latest
 
     permissions:
@@ -81,6 +88,6 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
   
-      # - name: Cleanup environment
-      #   run: |
-      #     az group delete --name rg-temporary --yes
+      - name: Cleanup environment
+        run: |
+          az group delete --name rg-temporary --yes

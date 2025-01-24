@@ -88,3 +88,5 @@ module containerGroup 'br/public:avm/res/container-instance/container-group:0.4.
     restartPolicy: 'Never'
   }
 }
+
+output aciResourceId string = containerGroup.outputs.resourceId
