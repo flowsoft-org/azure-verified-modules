@@ -3,6 +3,8 @@ name: Renew Let's Encrypt certificate (Wildcard)
 on:
   workflow_dispatch:
 
+
+
 jobs:
   renew-letsencrypt-certificate:
     runs-on: ubuntu-latest
@@ -10,6 +12,14 @@ jobs:
     permissions:
       id-token: write
       contents: read
+
+    env:
+      DNS_ZONE_RESOURCE_ID: ${{ vars.DNS_ZONE_RESOURCE_ID }}
+      KEY_VAULT_RESOURCE_ID: ${{ vars.KEY_VAULT_RESOURCE_ID }}
+      DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+      KEY_VAULT_CERT_NAME: ${{ vars.KEY_VAULT_CERT_NAME }}
+      PRODUCTION: ${{ vars.PRODUCTION }}
+      LETS_ENCRYPT_EMAIL: ${{ secrets.LETS_ENCRYPT_EMAIL }}
 
     steps:
       - name: Checkout repository
@@ -22,12 +32,12 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Test Keyvault DNS resolution
+      - name: Prepare infrastructure, role assignments and prerequisites
         run: |
           az deployment sub create --verbose --location italynorth --template-file letsencrypt/main.bicep \
-            --parameters mainDnsZoneResourceId=${{ inputs.DNS_ZONE_RESOURCE_ID }} \
-            mainCertKeyVaultResourceId=${{ inputs.KEY_VAULT_RESOURCE_ID }} \
-            domain=${{ vars.DOMAIN_NAME }}
+            --parameters mainDnsZoneResourceId=$DNS_ZONE_RESOURCE_ID \
+            mainCertKeyVaultResourceId=$KEY_VAULT_RESOURCE_ID \
+            domain=$DOMAIN_NAME
 
       - name: Setup azuredns.ini
         run: |
@@ -43,11 +53,11 @@ jobs:
       - name: Run Container Instance to renew certificate and store
         run: |
           az deployment sub create --verbose --location italynorth --template-file ./aci.bicep \
-            --parameters mainCertKeyVaultResourceId=${{ inputs.KEY_VAULT_RESOURCE_ID }} \
-            email=${{ secrets.LETS_ENCRYPT_EMAIL }} \
-            domain=${{ vars.DOMAIN_NAME }} \
-            certname=${{ vars.KEY_VAULT_CERT_NAME }} \
-            production=${{ vars.PRODUCTION }} \
+            --parameters mainCertKeyVaultResourceId=$KEY_VAULT_RESOURCE_ID \
+            email=$LETS_ENCRYPT_EMAIL \
+            domain=$DOMAIN_NAME \
+            certname=$KEY_VAULT_CERT_NAME \
+            production=$PRODUCTION \
             registryServername=$(az deployment sub show --name main --query properties.outputs.registryServername.value -o tsv) \
             userAssignedIdentityPrincipalId=$(az deployment sub show --name main --query properties.outputs.umsiPrincipalId.value -o tsv) \
             userAssignedIdentityResourceId=$(az deployment sub show --name main --query properties.outputs.umsiResourceId.value -o tsv)
