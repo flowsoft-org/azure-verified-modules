@@ -2,10 +2,6 @@ name: Renew Let's Encrypt certificate (Wildcard)
 
 on:
   workflow_dispatch:
-    inputs:
-      email: 
-        description: 'eMail account to use for Let''s Encrypt certificate'
-        required: true
 
 jobs:
   renew-letsencrypt-certificate:
@@ -58,7 +54,7 @@ jobs:
 
 
   cleanup-environment:
-    depends-on: renew-letsencrypt-certificate
+    needs: renew-letsencrypt-certificate
     if: ${{ always() }}
     runs-on: ubuntu-latest
 
