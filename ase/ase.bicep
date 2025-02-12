@@ -88,7 +88,28 @@ module asEnvironment 'br/public:avm/res/web/hosting-environment:0.2.1' = {
       resourceType: 'App Service Environment'
     }
     upgradePreference: 'Early'
-    zoneRedundant: true
+    zoneRedundant: false
+  }
+}
+
+module logWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.0' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-loganalytics-${regionName}'
+  params: {
+    // Required parameters
+    name: 'log-${regionName}'
+    // Non-required parameters
+    location: resourceLocation
+  }
+}
+
+module appInsights 'br/public:avm/res/insights/component:0.6.0' = {
+  name: '${uniqueString(deployment().name, resourceLocation)}-appinsights-${regionName}'
+  params: {
+    // Required parameters
+    name: 'app-insights-${regionName}'
+    workspaceResourceId: logWorkspace.outputs.resourceId
+    // Non-required parameters
+    location: resourceLocation
   }
 }
 
@@ -105,11 +126,22 @@ module appplan1 'br/public:avm/res/web/serverfarm:0.4.1' = {
     skuCapacity: 1
     skuName: 'I1v2'
     tags: {
-      Environment: 'App Plan 1'
+      Environment: 'App Plan Windows'
       OS: 'Windows'
       Role: 'Various'
     }
-    zoneRedundant: true
+    zoneRedundant: false
+    diagnosticSettings: [
+      {
+        metricCategories: [
+          {
+            category: 'AllMetrics'
+          }
+        ]
+        name: 'customSettingwsfmax'
+        workspaceResourceId: logWorkspace.outputs.resourceId
+      }
+    ]
   }
 }
 
@@ -126,11 +158,22 @@ module appplan2 'br/public:avm/res/web/serverfarm:0.4.1' = {
     skuCapacity: 1
     skuName: 'I1v2'
     tags: {
-      Environment: 'App Plan 2'
+      Environment: 'App Plan Linux'
       OS: 'Linux'
       Role: 'Various'
     }
     zoneRedundant: false
+    diagnosticSettings: [
+      {
+        metricCategories: [
+          {
+            category: 'AllMetrics'
+          }
+        ]
+        name: 'customSettingwsfmax'
+        workspaceResourceId: logWorkspace.outputs.resourceId
+      }
+    ]
   }
 }
 
@@ -210,6 +253,18 @@ module webapp1 'br/public:avm/res/web/site:0.11.0' = {
         }
       }
     ]
+    diagnosticSettings: [
+      {
+        metricCategories: [
+          {
+            category: 'AllMetrics'
+          }
+        ]
+        name: 'customSettingwsfmax'
+        workspaceResourceId: logWorkspace.outputs.resourceId
+      }
+    ]
+    appInsightResourceId: appInsights.outputs.resourceId
     vnetContentShareEnabled: true
     vnetImagePullEnabled: true
     vnetRouteAllEnabled: true
@@ -262,6 +317,18 @@ module webapp2 'br/public:avm/res/web/site:0.11.0' = {
         }
       }
     ]
+    diagnosticSettings: [
+      {
+        metricCategories: [
+          {
+            category: 'AllMetrics'
+          }
+        ]
+        name: 'customSettingwsfmax'
+        workspaceResourceId: logWorkspace.outputs.resourceId
+      }
+    ]
+    appInsightResourceId: appInsights.outputs.resourceId
     vnetContentShareEnabled: true
     vnetImagePullEnabled: true
     vnetRouteAllEnabled: true
