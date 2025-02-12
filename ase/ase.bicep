@@ -8,7 +8,7 @@ param addressPrefixHub string = '10.0.0.0/24'
 param addressPrefixApplicationGateway string = '10.0.0.192/26'
 param applicationGatewayIpAdress string = '10.0.0.196'
 param addressPrefixUser string = '10.0.0.136/29'
-param adressPrefixASE string = '10.0.0.0/25'
+param addressPrefixASE string = '10.0.0.0/25'
 
 module virtualNetwork 'br/public:avm/res/network/virtual-network:0.5.2' = {
   name: '${uniqueString(deployment().name, resourceLocation)}-network-${regionName}'
@@ -27,7 +27,7 @@ module virtualNetwork 'br/public:avm/res/network/virtual-network:0.5.2' = {
       }
       {
         name: 'ASESubnet'
-        addressPrefix: adressPrefixASE
+        addressPrefix: addressPrefixASE
         delegation: 'Microsoft.Web/hostingEnvironments'
       }
       {
