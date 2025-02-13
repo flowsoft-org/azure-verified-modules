@@ -182,7 +182,7 @@ module webapp1 'br/public:avm/res/web/site:0.11.0' = {
   params: {
     // Required parameters
     kind: 'app'
-    name: 'windows-inprocess'
+    name: 'windows'
     serverFarmResourceId: appplan1.outputs.resourceId
     // Non-required parameters
     basicPublishingCredentialsPolicies: [
@@ -200,7 +200,7 @@ module webapp1 'br/public:avm/res/web/site:0.11.0' = {
     managedIdentities: {
       systemAssigned: true
     }
-    publicNetworkAccess: 'Disabled'
+    publicNetworkAccess: 'Enabled'
     scmSiteAlsoStopped: true
     siteConfig: {
       alwaysOn: true
@@ -211,39 +211,39 @@ module webapp1 'br/public:avm/res/web/site:0.11.0' = {
         }
       ]
     }
-    // slots: [
-    //   {
-    //     basicPublishingCredentialsPolicies: [
-    //       {
-    //         allow: false
-    //         name: 'ftp'
-    //       }
-    //       {
-    //         allow: false
-    //         name: 'scm'
-    //       }
-    //     ]
-    //     name: 'dev'
-    //     siteConfig: {
-    //       alwaysOn: true
-    //       appSettings: [
-    //         {
-    //           name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
-    //           value: 'true'
-    //         }
-    //         {
-    //           name: 'aspnetapp'
-    //           value: 'samples/aspnetapp/aspnetapp'
-    //         }
-    //       ]
-    //       sourceControl: {
-    //         repoUrl: 'https://github.com/dotnet/dotnet-docker'
-    //         branch: 'main'
-    //         isManualIntegration: false
-    //       }
-    //     }
-    //   }
-    // ]
+    slots: [
+      {
+        basicPublishingCredentialsPolicies: [
+          {
+            allow: false
+            name: 'ftp'
+          }
+          {
+            allow: false
+            name: 'scm'
+          }
+        ]
+        name: 'dev'
+        siteConfig: {
+          alwaysOn: true
+          appSettings: [
+            {
+              name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+              value: 'true'
+            }
+            {
+              name: 'aspnetapp'
+              value: 'samples/aspnetapp/aspnetapp'
+            }
+          ]
+          sourceControl: {
+            repoUrl: 'https://github.com/dotnet/dotnet-docker'
+            branch: 'main'
+            isManualIntegration: false
+          }
+        }
+      }
+    ]
     diagnosticSettings: [
       {
         metricCategories: [
@@ -267,7 +267,7 @@ module webapp2 'br/public:avm/res/web/site:0.11.0' = {
   params: {
     // Required parameters
     kind: 'app,linux,container'
-    name: 'linux-container'
+    name: 'linux'
     serverFarmResourceId: appplan2.outputs.resourceId
     // Non-required parameters
     httpsOnly: true
@@ -275,7 +275,7 @@ module webapp2 'br/public:avm/res/web/site:0.11.0' = {
     managedIdentities: {
       systemAssigned: true
     }
-    publicNetworkAccess: 'Disabled'
+    publicNetworkAccess: 'Enabled'
     scmSiteAlsoStopped: true
     siteConfig: {
       appSettings: [
@@ -288,23 +288,15 @@ module webapp2 'br/public:avm/res/web/site:0.11.0' = {
       minTlsVersion: '1.2'
       linuxFxVersion: 'DOCKER|mcr.microsoft.com/dotnet/samples:aspnetapp'
     }
-    // slots: [
-    //   {
-    //     basicPublishingCredentialsPolicies: [
-    //       {
-    //         name: 'ftp'
-    //       }
-    //       {
-    //         name: 'scm'
-    //       }
-    //     ]
-    //     name: 'dev'
-    //     siteConfig: {
-    //       alwaysOn: true
-    //       linuxFxVersion: 'DOCKER|mcr.microsoft.com/dotnet/samples:aspnetapp'
-    //     }
-    //   }
-    // ]
+    slots: [
+      {
+        name: 'dev'
+        siteConfig: {
+          alwaysOn: true
+          linuxFxVersion: 'DOCKER|mcr.microsoft.com/dotnet/samples:aspnetapp'
+        }
+      }
+    ]
     diagnosticSettings: [
       {
         metricCategories: [
