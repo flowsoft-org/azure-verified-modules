@@ -182,7 +182,7 @@ module webapp1 'br/public:avm/res/web/site:0.11.0' = {
   params: {
     // Required parameters
     kind: 'app'
-    name: 'windows'
+    name: 'win'
     serverFarmResourceId: appplan1.outputs.resourceId
     // Non-required parameters
     basicPublishingCredentialsPolicies: [
